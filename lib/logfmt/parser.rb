@@ -4,6 +4,7 @@ module Logfmt
   EQUAL = 2
   IVALUE = 3
   QVALUE = 4
+  JSON = 5
 
   def self.numeric?(s)
     s.match(/\A[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\Z/)
@@ -64,6 +65,13 @@ module Logfmt
         next
       end
       if state == IVALUE
+        if c == '{'
+          value = c
+          escaped = false
+          state = JSON
+          next
+        end
+
         if !(c > ' ' && c != '"' && c != '=')
           if integer?(value)
             value = Integer(value)
@@ -84,6 +92,13 @@ module Logfmt
           output[key.strip] = value
         end
         next
+      end
+      if state == JSON
+        value << c
+        if c == '}'
+          output[key.strip] = value
+          state = GARBAGE
+        end
       end
       if state == QVALUE
         if c == '\\'
